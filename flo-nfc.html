@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flo Water Control</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0f1a;
+      --surface: #111827;
+      --border: #1e2d45;
+      --accent-blue: #38bdf8;
+      --accent-green: #34d399;
+      --accent-amber: #fbbf24;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --home-color: #34d399;
+      --away-color: #38bdf8;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    /* Animated water background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 80%, rgba(56, 189, 248, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(52, 211, 153, 0.05) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+      justify-content: center;
+    }
+
+    .droplet {
+      width: 28px;
+      height: 28px;
+      fill: var(--accent-blue);
+      opacity: 0.9;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    .logo-text {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(56,189,248,0.03);
+    }
+
+    .status-section {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .status-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .current-mode {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      transition: color 0.4s ease;
+    }
+
+    .current-mode.home { color: var(--home-color); }
+    .current-mode.away { color: var(--away-color); }
+    .current-mode.unknown { color: var(--muted); font-size: 18px; }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .mode-btn {
+      width: 100%;
+      padding: 18px 24px;
+      border-radius: 14px;
+      border: 1.5px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mode-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .mode-btn:active { transform: scale(0.98); }
+
+    .btn-home {
+      border-color: rgba(52, 211, 153, 0.3);
+      color: var(--home-color);
+    }
+    .btn-home::before { background: rgba(52, 211, 153, 0.07); }
+    .btn-home:hover { border-color: rgba(52, 211, 153, 0.6); box-shadow: 0 0 24px rgba(52, 211, 153, 0.12); }
+    .btn-home:hover::before { opacity: 1; }
+
+    .btn-away {
+      border-color: rgba(56, 189, 248, 0.3);
+      color: var(--away-color);
+    }
+    .btn-away::before { background: rgba(56, 189, 248, 0.07); }
+    .btn-away:hover { border-color: rgba(56, 189, 248, 0.6); box-shadow: 0 0 24px rgba(56, 189, 248, 0.12); }
+    .btn-away:hover::before { opacity: 1; }
+
+    .btn-icon {
+      font-size: 20px;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn-label {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      text-align: left;
+    }
+
+    .btn-sub {
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.6;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* Toast / status message */
+    .toast {
+      margin-top: 20px;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13px;
+      font-family: 'DM Mono', monospace;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid transparent;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .toast.show { display: flex; }
+    .toast.success { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.25); color: var(--home-color); }
+    .toast.error { background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.25); color: var(--accent-amber); }
+    .toast.loading { background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.2); color: var(--accent-blue); }
+
+    /* Spinner */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Config section */
+    .config-toggle {
+      margin-top: 24px;
+      text-align: center;
+    }
+
+    .config-toggle button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: color 0.2s;
+    }
+    .config-toggle button:hover { color: var(--text); }
+
+    .config-panel {
+      display: none;
+      margin-top: 16px;
+    }
+    .config-panel.open { display: block; }
+
+    .config-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+    .field:last-child { margin-bottom: 0; }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: rgba(56,189,248,0.4); }
+    .field input::placeholder { color: var(--muted); }
+
+    .save-btn {
+      width: 100%;
+      margin-top: 14px;
+      padding: 12px;
+      background: rgba(56,189,248,0.1);
+      border: 1px solid rgba(56,189,248,0.3);
+      border-radius: 10px;
+      color: var(--accent-blue);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.03em;
+    }
+    .save-btn:hover { background: rgba(56,189,248,0.18); }
+
+    .note {
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .note a { color: var(--accent-blue); text-decoration: none; }
+    .note a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo-row">
+    <svg class="droplet" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C12 2 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-7-13-7-13z"/>
+    </svg>
+    <span class="logo-text">Flo Water Control</span>
+  </div>
+
+  <div class="card">
+    <div class="status-section">
+      <div class="status-label">Current Mode</div>
+      <div class="current-mode unknown" id="currentMode">— checking —</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="btn-group">
+      <button class="mode-btn btn-home" onclick="setMode('home')">
+        <span class="btn-icon">🏠</span>
+        <span class="btn-label">
+          Home
+          <span class="btn-sub">Normal monitoring · alerts active</span>
+        </span>
+      </button>
+      <button class="mode-btn btn-away" onclick="setMode('away')">
+        <span class="btn-icon">✈️</span>
+        <span class="btn-label">
+          Away
+          <span class="btn-sub">Stricter limits · auto shutoff on</span>
+        </span>
+      </button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="config-toggle">
+    <button onclick="toggleConfig()">⚙ Configure credentials</button>
+  </div>
+
+  <div class="config-panel" id="configPanel">
+    <div class="config-card">
+      <div class="field">
+        <label>Moen / Flo Email</label>
+        <input type="email" id="floEmail" placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="floPass" placeholder="••••••••" />
+      </div>
+      <div class="field">
+        <label>Location ID <span style="text-transform:none;font-style:italic;">(see note below)</span></label>
+        <input type="text" id="floLocation" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+      </div>
+      <button class="save-btn" onclick="saveCredentials()">Save to this device</button>
+      <p class="note">
+        Credentials are saved only in your browser's local storage — never transmitted except directly to Moen's API.<br><br>
+        <strong>Finding your Location ID:</strong> Log into <a href="https://user.meetflo.com" target="_blank">user.meetflo.com</a>, open DevTools → Network, trigger any action, and look for requests containing a UUID in the URL path — that's your location ID. Alternatively use the <a href="https://github.com/rsnodgrass/python-flo-water" target="_blank">python-flo-water</a> library to list your locations.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Storage helpers ──────────────────────────────────────────────
+  const STORE = {
+    get: k => localStorage.getItem(k),
+    set: (k, v) => localStorage.setItem(k, v),
+  };
+
+  function loadCredentials() {
+    document.getElementById('floEmail').value = STORE.get('flo_email') || '';
+    document.getElementById('floPass').value = STORE.get('flo_pass') || '';
+    document.getElementById('floLocation').value = STORE.get('flo_location') || '';
+  }
+
+  function saveCredentials() {
+    STORE.set('flo_email', document.getElementById('floEmail').value.trim());
+    STORE.set('flo_pass', document.getElementById('floPass').value);
+    STORE.set('flo_location', document.getElementById('floLocation').value.trim());
+    showToast('success', '✓', 'Credentials saved.');
+    fetchCurrentMode();
+  }
+
+  function toggleConfig() {
+    const p = document.getElementById('configPanel');
+    p.classList.toggle('open');
+    if (p.classList.contains('open')) loadCredentials();
+  }
+
+  // ── Toast ────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(type, icon, msg, persist = false) {
+    const el = document.getElementById('toast');
+    el.className = `toast show ${type}`;
+    el.innerHTML = type === 'loading'
+      ? `<div class="spinner"></div><span>${msg}</span>`
+      : `<span>${icon}</span><span>${msg}</span>`;
+    clearTimeout(toastTimer);
+    if (!persist) toastTimer = setTimeout(() => el.classList.remove('show'), 4000);
+  }
+
+  // ── Moen Flo API ─────────────────────────────────────────────────
+  const BASE = 'https://api-gw.meetflo.com/api/v2';
+
+  async function getToken() {
+    const email = STORE.get('flo_email');
+    const pass  = STORE.get('flo_pass');
+    if (!email || !pass) throw new Error('No credentials — tap ⚙ to configure.');
+
+    const res = await fetch(`${BASE}/users/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: email, password: pass })
+    });
+    if (!res.ok) throw new Error(`Auth failed (${res.status})`);
+    const data = await res.json();
+    return data.token;
+  }
+
+  async function fetchCurrentMode() {
+    const locationId = STORE.get('flo_location');
+    if (!locationId) {
+      setModeDisplay('unknown', '— not configured —');
+      return;
+    }
+    try {
+      const token = await getToken();
+      const res = await fetch(`${BASE}/locations/${locationId}`, {
+        headers: { 'Authorization': token }
+      });
+      if (!res.ok) throw new Error(`Could not fetch location (${res.status})`);
+      const data = await res.json();
+      const mode = data.systemMode?.target || data.systemMode?.lastKnown || 'unknown';
+      setModeDisplay(mode, mode.charAt(0).toUpperCase() + mode.slice(1));
+    } catch (e) {
+      setModeDisplay('unknown', '— error —');
+      console.warn('fetchCurrentMode:', e.message);
+    }
+  }
+
+  function setModeDisplay(cls, label) {
+    const el = document.getElementById('currentMode');
+    el.className = `current-mode ${cls}`;
+    el.textContent = label;
+  }
+
+  async function setMode(mode) {
+    const locationId = STORE.get('flo_location');
+    if (!locationId) {
+      showToast('error', '⚠', 'Location ID not set. Tap ⚙ to configure.');
+      return;
+    }
+
+    showToast('loading', '', `Switching to ${mode} mode…`, true);
+
+    try {
+      const token = await getToken();
+
+      // Set system mode on the location
+      const res = await fetch(`${BASE}/locations/${locationId}/systemMode`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ target: mode, revertMode: mode === 'away' ? 'home' : undefined })
+      });
+
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`API error ${res.status}: ${body}`);
+      }
+
+      setModeDisplay(mode, mode.charAt(0).toUpperCase() + mode.slice(1));
+      showToast('success', '✓', `Switched to ${mode} mode.`);
+    } catch (e) {
+      showToast('error', '⚠', e.message);
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────
+  fetchCurrentMode();
+</script>
+</body>
+</html>
